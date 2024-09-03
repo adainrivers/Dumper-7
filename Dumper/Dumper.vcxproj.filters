@@ -68,6 +68,9 @@
     <ClCompile Include="DumpspaceGenerator.cpp">
       <Filter>GeneratorRewrite\Private\Generators</Filter>
     </ClCompile>
+    <ClCompile Include="CSharpGenerator.cpp">
+      <Filter>GeneratorRewrite\Private\Generators</Filter>
+    </ClCompile>
   </ItemGroup>
   <ItemGroup>
     <Filter Include="Engine">
@@ -232,6 +235,9 @@
       <Filter>Utils\Json</Filter>
     </ClInclude>
     <ClInclude Include="DumpspaceGenerator.h">
+      <Filter>GeneratorRewrite\Public\Generators</Filter>
+    </ClInclude>
+    <ClInclude Include="CSharpGenerator.h">
       <Filter>GeneratorRewrite\Public\Generators</Filter>
     </ClInclude>
   </ItemGroup>

@@ -143,6 +143,7 @@
     </Link>
   </ItemDefinitionGroup>
   <ItemGroup>
+    <ClCompile Include="CSharpGenerator.cpp" />
     <ClCompile Include="DumpspaceGenerator.cpp" />
     <ClCompile Include="ExternalDependencies\Compression\zstd.c" />
     <ClCompile Include="ExternalDependencies\Dumpspace\DSGen.cpp" />
@@ -168,6 +169,7 @@
     <ClCompile Include="StructWrapper.cpp" />
   </ItemGroup>
   <ItemGroup>
+    <ClInclude Include="CSharpGenerator.h" />
     <ClInclude Include="DumpspaceGenerator.h" />
     <ClInclude Include="ExternalDependencies\Compression\zstd.h" />
     <ClInclude Include="ExternalDependencies\Dumpspace\DSGen.h" />
