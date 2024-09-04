@@ -41,7 +41,7 @@ private:
     static std::string GenerateEnum(const EnumWrapper& Enum);
     static std::string GetCSharpProperty(const PropertyWrapper& wrapper);
     static std::string GetCSharpFunction(const FunctionWrapper& wrapper);
-    static std::string GenerateStruct(const StructWrapper& Struct);
+    static std::string GenerateStruct(const StructWrapper& Struct, bool isSuper = false);
 
 
 public:

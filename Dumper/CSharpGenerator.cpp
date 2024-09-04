@@ -114,58 +114,77 @@ std::string CSharpGenerator::GetCSharpType(UEProperty property)
 		const auto struct_wrapper = new StructWrapper(property.Cast<UEStructProperty>().GetUnderlayingStruct());
 		return struct_wrapper->GetUniqueName().first;
 	}
-	/*if (TypeFlags & EClassCastFlags::ArrayProperty)
+	if (type_flags & EClassCastFlags::ArrayProperty)
 	{
-		return Cast<UEArrayProperty>().GetCSharpType();
+		const auto array_property = property.Cast<UEArrayProperty>();
+		const auto dimensions = array_property.GetArrayDim();
+		if (dimensions == 1)
+		{
+			const auto innerProperty = array_property.GetInnerProperty();
+			const auto inner_property_type = GetCSharpType(innerProperty);
+			if (inner_property_type.empty())
+			{
+				return "";
+			}
+			//return "nint";
+			return "UList<" + inner_property_type + ">";
+		}
+		std::cout << "ArrayProperty with dimensions > 1 not supported\n";
+		return "";
 	}
-	if (TypeFlags & EClassCastFlags::WeakObjectProperty)
+	//if (type_flags & EClassCastFlags::WeakObjectProperty)
+	//{
+	//	return Cast<UEWeakObjectProperty>().GetCSharpType();
+	//}
+	//if (type_flags & EClassCastFlags::LazyObjectProperty)
+	//{
+	//	return Cast<UELazyObjectProperty>().GetCSharpType();
+	//}
+	//if (type_flags & EClassCastFlags::SoftClassProperty)
+	//{
+	//	return Cast<UESoftClassProperty>().GetCSharpType();
+	//}
+	//if (type_flags & EClassCastFlags::SoftObjectProperty)
+	//{
+	//	return Cast<UESoftObjectProperty>().GetCSharpType();
+	//}
+	if (type_flags & EClassCastFlags::ObjectProperty)
 	{
-		return Cast<UEWeakObjectProperty>().GetCSharpType();
+
+		const auto object_property = property.Cast<UEObjectProperty>();
+		const auto object_property_class = object_property.GetPropertyClass();
+		const auto object_property_class_type = object_property_class ? object_property_class.GetCppName() : "UObject";
+
+		return "URef<" + object_property_class_type + ">";
 	}
-	if (TypeFlags & EClassCastFlags::LazyObjectProperty)
-	{
-		return Cast<UELazyObjectProperty>().GetCSharpType();
-	}
-	if (TypeFlags & EClassCastFlags::SoftClassProperty)
-	{
-		return Cast<UESoftClassProperty>().GetCSharpType();
-	}
-	if (TypeFlags & EClassCastFlags::SoftObjectProperty)
-	{
-		return Cast<UESoftObjectProperty>().GetCSharpType();
-	}
-	if (TypeFlags & EClassCastFlags::ObjectProperty)
-	{
-		return Cast<UEObjectProperty>().GetCSharpType();
-	}
-	if (TypeFlags & EClassCastFlags::MapProperty)
-	{
-		return Cast<UEMapProperty>().GetCSharpType();
-	}
-	if (TypeFlags & EClassCastFlags::SetProperty)
-	{
-		return Cast<UESetProperty>().GetCSharpType();
-	}
-	if (TypeFlags & EClassCastFlags::EnumProperty)
-	{
-		return Cast<UEEnumProperty>().GetCSharpType();
-	}
-	if (TypeFlags & EClassCastFlags::InterfaceProperty)
-	{
-		return Cast<UEInterfaceProperty>().GetCSharpType();
-	}
-	if (TypeFlags & EClassCastFlags::FieldPathProperty)
-	{
-		return Cast<UEFieldPathProperty>().GetCSharpType();
-	}
-	if (TypeFlags & EClassCastFlags::DelegateProperty)
-	{
-		return Cast<UEDelegateProperty>().GetCSharpType();
-	}
-	if (TypeFlags & EClassCastFlags::OptionalProperty)
-	{
-		return Cast<UEOptionalProperty>().GetCSharpType();
-	}*/
+	//if (type_flags & EClassCastFlags::MapProperty)
+	//{
+	//	return Cast<UEMapProperty>().GetCSharpType();
+	//}
+	//if (type_flags & EClassCastFlags::SetProperty)
+	//{
+	//	return Cast<UESetProperty>().GetCSharpType();
+	//}
+	//if (type_flags & EClassCastFlags::EnumProperty)
+	//{
+	//	return Cast<UEEnumProperty>().GetCSharpType();
+	//}
+	//if (type_flags & EClassCastFlags::InterfaceProperty)
+	//{
+	//	return Cast<UEInterfaceProperty>().GetCSharpType();
+	//}
+	//if (type_flags & EClassCastFlags::FieldPathProperty)
+	//{
+	//	return Cast<UEFieldPathProperty>().GetCSharpType();
+	//}
+	//if (type_flags & EClassCastFlags::DelegateProperty)
+	//{
+	//	return Cast<UEDelegateProperty>().GetCSharpType();
+	//}
+	//if (type_flags & EClassCastFlags::OptionalProperty)
+	//{
+	//	return Cast<UEOptionalProperty>().GetCSharpType();
+	//}
 	return "";
 }
 
@@ -176,7 +195,7 @@ std::string CSharpGenerator::GenerateEnum(const EnumWrapper& Enum)
 	const auto enum_size = Enum.GetUnderlyingTypeSize();
 
 	const char* enum_type;
-	auto max_size = 255;
+	uint64 max_size = 255;
 
 	switch (enum_size)
 	{
@@ -237,12 +256,15 @@ std::string CSharpGenerator::GenerateEnum(const EnumWrapper& Enum)
 
 std::string CSharpGenerator::GetCSharpProperty(const PropertyWrapper& wrapper)
 {
+	if(wrapper.IsStatic())
+	{
+		return "";
+	}
 	const auto property_name = wrapper.GetName();
 	if (CSharpReservedKeywords.contains(property_name)) return "";
 	const auto property = wrapper.GetUnrealProperty();
 	std::string property_type = GetCSharpType(property);
 	if (property_type.empty()) return "";
-
 
 	auto result = "\t[FieldOffset(" + std::to_string(wrapper.GetOffset()) + ")] // Size: " + std::to_string(wrapper.GetSize()) + "\n\tpublic " + property_type + " " + wrapper.GetName() + ";\n";
 	return result;
@@ -254,29 +276,34 @@ std::string CSharpGenerator::GetCSharpFunction(const FunctionWrapper& wrapper)
 }
 
 
-std::string CSharpGenerator::GenerateStruct(const StructWrapper& Struct)
+std::string CSharpGenerator::GenerateStruct(const StructWrapper& Struct, bool isSuper)
 {
 	std::stringstream code_stream;
 
 	auto [struct_name, is_unique] = Struct.GetUniqueName();
-	if (ProcessedStructNames.contains(struct_name)) return "";
-	ProcessedStructNames.insert(struct_name);
+	if (!isSuper) {
+		if (ProcessedStructNames.contains(struct_name)) return "";
+		ProcessedStructNames.insert(struct_name);
+	}
 	const auto size = Struct.GetSize();
 	const auto type = Struct.IsClass() ? "class" : "struct";
-	const auto super = Struct.GetSuper();
-	std::string super_name = "None";
-	if (Struct.IsClass() && super.IsValid())
-	{
-		super_name = super.GetUniqueName().first;
+
+	if (!isSuper) {
+		code_stream << "[StructLayout(LayoutKind.Explicit)]\n";
+		code_stream << "public " << type << " " << struct_name;
+
+		code_stream << "\n{\n";
 	}
 
-	code_stream << "[StructLayout(LayoutKind.Explicit, Size = " << size << ")]\n";
-	code_stream << "public " << type << " " << struct_name;
-	if (super_name != "None")
+	const auto super = Struct.GetSuper();
+	const auto superName = super.GetName();
+	const auto isSuperValid = super.IsValid();
+
+	if (isSuperValid && superName != "None")
 	{
-		code_stream << " : " << super_name;
+		auto superCode = GenerateStruct(super, true);
+		code_stream << superCode;
 	}
-	code_stream << "\n{\n";
 
 
 	const auto members = Struct.GetMembers();
@@ -293,7 +320,9 @@ std::string CSharpGenerator::GenerateStruct(const StructWrapper& Struct)
 		code_stream << GetCSharpFunction(wrapper);
 	}
 
-	code_stream << "}\n\n";
+	if (!isSuper) {
+		code_stream << "}\n\n";
+	}
 	return code_stream.str();
 }
 
