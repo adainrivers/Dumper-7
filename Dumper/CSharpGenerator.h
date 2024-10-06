@@ -1,5 +1,4 @@
 #pragma once
-#pragma once
 #include <filesystem>
 #include "DependencyManager.h"
 #include "StructManager.h"
@@ -36,12 +35,12 @@ public:
 private:
 
    
-    static void WriteCode(const std::string& code, const std::string& Name);
-    static std::string GetCSharpType(UEProperty property);
+    static void WriteCode(const std::string& Code, const std::string& Name);
+    static std::string GetCSharpType(UEProperty Property);
     static std::string GenerateEnum(const EnumWrapper& Enum);
-    static std::string GetCSharpProperty(const PropertyWrapper& wrapper);
-    static std::string GetCSharpFunction(const FunctionWrapper& wrapper);
-    static std::string GenerateStruct(const StructWrapper& Struct, bool isSuper = false);
+    static std::string GetCSharpProperty(const PropertyWrapper& Wrapper);
+    static std::string GetCSharpFunction(const FunctionWrapper& Wrapper);
+    static std::string GenerateStruct(const StructWrapper& Wrapper, bool IsSuper = false);
 
 
 public:

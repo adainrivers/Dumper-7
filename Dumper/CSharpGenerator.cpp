@@ -6,7 +6,9 @@
 #include "MemberManager.h"
 
 #include "Settings.h"
+
 std::unordered_set<std::string> ProcessedStructNames = {};
+
 static const std::unordered_set<std::string> CSharpReservedKeywords = {
 	"abstract", "as", "base", "bool", "break", "byte", "case", "catch", "char", "checked",
 	"class", "const", "continue", "decimal", "default", "delegate", "do", "double", "else", "enum",
@@ -22,10 +24,11 @@ static const std::unordered_set<std::string> CSharpReservedKeywords = {
 	"partial", "record", "remove", "required", "scoped", "select", "set", "unmanaged", "value", "var",
 	"when", "where", "with", "yield"
 };
+
 void CSharpGenerator::WriteCode(const std::string& Code, const std::string& Name)
 {
-	const auto file_name = Name + ".cs";
-	std::ofstream file(MainFolder / Subfolder / file_name);
+	const auto FileName = Name + ".cs";
+	std::ofstream File(MainFolder / Subfolder / FileName);
 
 	// Check if directory exists and create if not
 	if (!exists(MainFolder / Subfolder))
@@ -33,101 +36,100 @@ void CSharpGenerator::WriteCode(const std::string& Code, const std::string& Name
 		create_directories(MainFolder / Subfolder);
 	}
 
-	if (!file.is_open())
+	if (!File.is_open())
 	{
-		std::cerr << "Failed to open file: " << file_name << '\n';
+		std::cerr << "Failed to open file: " << FileName << '\n';
 		return;
 	}
 
-	file << Code;
-	file.close();
+	File << Code;
+	File.close();
 }
 
-std::string CSharpGenerator::GetCSharpType(UEProperty property)
+std::string CSharpGenerator::GetCSharpType(UEProperty Property)
 {
-	const EClassCastFlags type_flags = property.GetClass().first ? property.GetClass().first.GetCastFlags() : property.GetClass().second.GetCastFlags();
+	const EClassCastFlags Flags = Property.GetClass().first ? Property.GetClass().first.GetCastFlags() : Property.GetClass().second.GetCastFlags();
 
-	if (type_flags & EClassCastFlags::ByteProperty)
+	if (Flags & EClassCastFlags::ByteProperty)
 	{
 		return "byte";
 	}
-	if (type_flags & EClassCastFlags::UInt16Property)
+	if (Flags & EClassCastFlags::UInt16Property)
 	{
 		return "ushort";
 	}
-	if (type_flags & EClassCastFlags::UInt32Property)
+	if (Flags & EClassCastFlags::UInt32Property)
 	{
 		return "uint";
 	}
-	if (type_flags & EClassCastFlags::UInt64Property)
+	if (Flags & EClassCastFlags::UInt64Property)
 	{
 		return "ulong";
 	}
-	if (type_flags & EClassCastFlags::Int8Property)
+	if (Flags & EClassCastFlags::Int8Property)
 	{
 		return "byte";
 	}
-	if (type_flags & EClassCastFlags::Int16Property)
+	if (Flags & EClassCastFlags::Int16Property)
 	{
 		return "short";
 	}
-	if (type_flags & EClassCastFlags::IntProperty)
+	if (Flags & EClassCastFlags::IntProperty)
 	{
 		return "int";
 	}
-	if (type_flags & EClassCastFlags::Int64Property)
+	if (Flags & EClassCastFlags::Int64Property)
 	{
 		return "long";
 	}
-	if (type_flags & EClassCastFlags::FloatProperty)
+	if (Flags & EClassCastFlags::FloatProperty)
 	{
 		return "float";
 	}
-	if (type_flags & EClassCastFlags::DoubleProperty)
+	if (Flags & EClassCastFlags::DoubleProperty)
 	{
 		return "double";
 	}
-	if (type_flags & EClassCastFlags::ClassProperty)
+	if (Flags & EClassCastFlags::ClassProperty)
 	{
 		return "";
 	}
-	if (type_flags & EClassCastFlags::NameProperty)
+	if (Flags & EClassCastFlags::NameProperty)
 	{
 		return "FName";
 	}
-	if (type_flags & EClassCastFlags::StrProperty)
+	if (Flags & EClassCastFlags::StrProperty)
 	{
 		return "FString";
 	}
-	if (type_flags & EClassCastFlags::TextProperty)
+	if (Flags & EClassCastFlags::TextProperty)
 	{
 		return "FText";
 	}
-	if (type_flags & EClassCastFlags::BoolProperty)
+	if (Flags & EClassCastFlags::BoolProperty)
 	{
-		const auto bool_property = property.Cast<UEBoolProperty>();
-		if (bool_property.IsNativeBool()) return "bool";
-		return "UBool" + std::to_string(bool_property.GetBitIndex());
+		const auto BoolProperty = Property.Cast<UEBoolProperty>();
+		if (BoolProperty.IsNativeBool()) return "bool";
+		return "UBool" + std::to_string(BoolProperty.GetBitIndex());
 	}
-	if (type_flags & EClassCastFlags::StructProperty)
+	if (Flags & EClassCastFlags::StructProperty)
 	{
-		const auto struct_wrapper = new StructWrapper(property.Cast<UEStructProperty>().GetUnderlayingStruct());
-		return struct_wrapper->GetUniqueName().first;
+		const auto Wrapper = new StructWrapper(Property.Cast<UEStructProperty>().GetUnderlayingStruct());
+		return Wrapper->GetUniqueName().first;
 	}
-	if (type_flags & EClassCastFlags::ArrayProperty)
+	if (Flags & EClassCastFlags::ArrayProperty)
 	{
-		const auto array_property = property.Cast<UEArrayProperty>();
-		const auto dimensions = array_property.GetArrayDim();
-		if (dimensions == 1)
+		const auto ArrayProperty = Property.Cast<UEArrayProperty>();
+		if (const auto Dimensions = ArrayProperty.GetArrayDim(); Dimensions == 1)
 		{
-			const auto innerProperty = array_property.GetInnerProperty();
-			const auto inner_property_type = GetCSharpType(innerProperty);
-			if (inner_property_type.empty())
+			const auto InnerProperty = ArrayProperty.GetInnerProperty();
+			const auto InnerPropertyType = GetCSharpType(InnerProperty);
+			if (InnerPropertyType.empty())
 			{
 				return "";
 			}
-			//return "nint";
-			return "UList<" + inner_property_type + ">";
+			return "nint";
+			return InnerPropertyType + "[]";
 		}
 		std::cout << "ArrayProperty with dimensions > 1 not supported\n";
 		return "";
@@ -148,14 +150,14 @@ std::string CSharpGenerator::GetCSharpType(UEProperty property)
 	//{
 	//	return Cast<UESoftObjectProperty>().GetCSharpType();
 	//}
-	if (type_flags & EClassCastFlags::ObjectProperty)
+	if (Flags & EClassCastFlags::ObjectProperty)
 	{
-
-		const auto object_property = property.Cast<UEObjectProperty>();
+		return "nint";
+		const auto object_property = Property.Cast<UEObjectProperty>();
 		const auto object_property_class = object_property.GetPropertyClass();
 		const auto object_property_class_type = object_property_class ? object_property_class.GetCppName() : "UObject";
 
-		return "URef<" + object_property_class_type + ">";
+		return  object_property_class_type + "*";
 	}
 	//if (type_flags & EClassCastFlags::MapProperty)
 	//{
@@ -190,140 +192,138 @@ std::string CSharpGenerator::GetCSharpType(UEProperty property)
 
 std::string CSharpGenerator::GenerateEnum(const EnumWrapper& Enum)
 {
-	std::stringstream code_stream;
-	const auto enum_name = Enum.GetRawName();
-	const auto enum_size = Enum.GetUnderlyingTypeSize();
+	std::stringstream CodeStream;
+	const auto EnumName = Enum.GetRawName();
+	const auto EnumSize = Enum.GetUnderlyingTypeSize();
 
-	const char* enum_type;
-	uint64 max_size = 255;
+	const char* EnumType;
+	uint64 MaxSize = 255;
 
-	switch (enum_size)
+	switch (EnumSize)
 	{
 	case 1:
-		enum_type = "byte";
+		EnumType = "byte";
 		break;
 	case 2:
-		enum_type = "ushort";
-		max_size = USHRT_MAX;
+		EnumType = "ushort";
+		MaxSize = USHRT_MAX;
 		break;
 	case 4:
-		enum_type = "uint";
-		max_size = UINT_MAX;
+		EnumType = "uint";
+		MaxSize = UINT_MAX;
 		break;
 	case 8:
-		enum_type = "ulong";
-		max_size = ULONG_MAX;
+		EnumType = "ulong";
+		MaxSize = ULONG_MAX;
 		break;
 	default:
 		throw std::runtime_error("Enum size not supported");
 	}
 
-	code_stream << "public enum " << enum_name << " : " << enum_type << "\n{\n";
+	CodeStream << "public enum " << EnumName << " : " << EnumType << "\n{\n";
 
-	const int total_members = Enum.GetNumMembers(); // Assuming GetMembers returns a container with size() method
+	const int TotalMembers = Enum.GetNumMembers(); // Assuming GetMembers returns a container with size() method
 
-	auto i = 0;
-	auto is_flags = false;
-	for (auto member : Enum.GetMembers())
+	auto Current = 0;
+	auto IsFlags = false;
+	for (auto Member : Enum.GetMembers())
 	{
-		i++;
-		const auto member_name = member.GetUniqueName();
-		const auto enum_value = member.GetValue();
-		if (enum_value > max_size) {
-			std::cout << "Enum value " << enum_name << " " << enum_value << " is larger than the maximum value for the underlying type " << enum_type << '\n';
+		Current++;
+		const auto MemberName = Member.GetUniqueName();
+		const auto EnumValue = Member.GetValue();
+		if (EnumValue > MaxSize) {
+			std::cout << "Enum value " << EnumName << " " << EnumValue << " is larger than the maximum value for the underlying type " << EnumType << '\n';
 			continue;
 		}
 
-		if (i == total_members) {
-			if (member_name == "All")
+		if (Current == TotalMembers) {
+			if (MemberName == "All")
 			{
-				is_flags = true;
+				IsFlags = true;
 			}
 			break;
 		}
 
-		code_stream << "\t" << member_name << " = " << enum_value << ",\n";
+		CodeStream << "\t" << MemberName << " = " << EnumValue << ",\n";
 	}
 
-	code_stream << "}\n\n";
-	auto code = code_stream.str();
-	if (is_flags)
+	CodeStream << "}\n\n";
+	auto Code = CodeStream.str();
+	if (IsFlags)
 	{
-		code = "[Flags]\n" + code;
+		Code = "[Flags]\n" + Code;
 	}
-	return code;
+	return Code;
 }
 
-std::string CSharpGenerator::GetCSharpProperty(const PropertyWrapper& wrapper)
+std::string CSharpGenerator::GetCSharpProperty(const PropertyWrapper& Wrapper)
 {
-	if(wrapper.IsStatic())
+	if(Wrapper.IsStatic())
 	{
 		return "";
 	}
-	const auto property_name = wrapper.GetName();
-	if (CSharpReservedKeywords.contains(property_name)) return "";
-	const auto property = wrapper.GetUnrealProperty();
-	std::string property_type = GetCSharpType(property);
-	if (property_type.empty()) return "";
+	if (const auto PropertyName = Wrapper.GetName(); CSharpReservedKeywords.contains(PropertyName)) return "";
+	const auto Property = Wrapper.GetUnrealProperty();
+	const std::string PropertyType = GetCSharpType(Property);
+	if (PropertyType.empty()) return "";
 
-	auto result = "\t[FieldOffset(" + std::to_string(wrapper.GetOffset()) + ")] // Size: " + std::to_string(wrapper.GetSize()) + "\n\tpublic " + property_type + " " + wrapper.GetName() + ";\n";
-	return result;
+	auto Result = "\t[FieldOffset(" + std::to_string(Wrapper.GetOffset()) + ")] // Size: " + std::to_string(Wrapper.GetSize()) + "\n\tpublic " + PropertyType + " " + Wrapper.GetName() + ";\n";
+	return Result;
 }
 
-std::string CSharpGenerator::GetCSharpFunction(const FunctionWrapper& wrapper)
+std::string CSharpGenerator::GetCSharpFunction([[maybe_unused]] const FunctionWrapper& Wrapper)
 {
 	return "";
 }
 
 
-std::string CSharpGenerator::GenerateStruct(const StructWrapper& Struct, bool isSuper)
+std::string CSharpGenerator::GenerateStruct(const StructWrapper& Wrapper, bool IsSuper)
 {
-	std::stringstream code_stream;
+	std::stringstream CodeStream;
 
-	auto [struct_name, is_unique] = Struct.GetUniqueName();
-	if (!isSuper) {
+	auto [struct_name, is_unique] = Wrapper.GetUniqueName();
+	if (!IsSuper) {
 		if (ProcessedStructNames.contains(struct_name)) return "";
 		ProcessedStructNames.insert(struct_name);
 	}
-	const auto size = Struct.GetSize();
-	const auto type = Struct.IsClass() ? "class" : "struct";
+	[[maybe_unused]] const auto Size = Wrapper.GetSize();
+	const auto Type = Wrapper.IsClass() ? "class" : "struct";
 
-	if (!isSuper) {
-		code_stream << "[StructLayout(LayoutKind.Explicit)]\n";
-		code_stream << "public " << type << " " << struct_name;
+	if (!IsSuper) {
+		CodeStream << "[StructLayout(LayoutKind.Explicit)]\n";
+		CodeStream << "public unsafe " << Type << " " << struct_name;
 
-		code_stream << "\n{\n";
+		CodeStream << "\n{\n";
 	}
 
-	const auto super = Struct.GetSuper();
-	const auto superName = super.GetName();
-	const auto isSuperValid = super.IsValid();
+	const auto Super = Wrapper.GetSuper();
+	const auto SuperName = Super.GetName();
 
-	if (isSuperValid && superName != "None")
+	if (const auto IsSuperValid = Super.IsValid(); IsSuperValid && SuperName != "None")
 	{
-		auto superCode = GenerateStruct(super, true);
-		code_stream << superCode;
+		auto SuperCode = GenerateStruct(Super, true);
+		CodeStream << SuperCode;
 	}
 
 
-	const auto members = Struct.GetMembers();
-	for (const PropertyWrapper& wrapper : members.IterateMembers())
+	const auto Members = Wrapper.GetMembers();
+	for (const PropertyWrapper& Wrapper : Members.IterateMembers())
 	{
-		if (!wrapper.IsUnrealProperty())
+		if (!Wrapper.IsUnrealProperty())
 		{
 			continue;
 		}
-		code_stream << GetCSharpProperty(wrapper);
+		CodeStream << GetCSharpProperty(Wrapper);
 	}
-	for (const FunctionWrapper& wrapper : members.IterateFunctions())
+	for (const FunctionWrapper& Wrapper : Members.IterateFunctions())
 	{
-		code_stream << GetCSharpFunction(wrapper);
+		CodeStream << GetCSharpFunction(Wrapper);
 	}
 
-	if (!isSuper) {
-		code_stream << "}\n\n";
+	if (!IsSuper) {
+		CodeStream << "}\n\n";
 	}
-	return code_stream.str();
+	return CodeStream.str();
 }
 
 
@@ -332,12 +332,12 @@ void CSharpGenerator::Generate()
 
 	for (PackageInfoHandle Package : PackageManager::IterateOverPackageInfos())
 	{
-		std::stringstream code_stream;
+		std::stringstream CodeStream;
 
-		code_stream << "// Resharper disable all;\n";
-		code_stream << "using System;\n";
-		code_stream << "using System.Runtime.InteropServices;\n";
-		code_stream << "namespace GeneratedSDK;\n\n";
+		CodeStream << "// Resharper disable all;\n";
+		CodeStream << "using System;\n";
+		CodeStream << "using System.Runtime.InteropServices;\n";
+		CodeStream << "namespace GeneratedSDK;\n\n";
 
 		if (Package.IsEmpty())
 			continue;
@@ -347,19 +347,19 @@ void CSharpGenerator::Generate()
 		*
 		* Note: Some filestreams aren't opened but passed as parameters anyway because the function demands it, they are not used if they are closed
 		*/
-		for (int32 EnumIdx : Package.GetEnums())
+		for (const int32 EnumIdx : Package.GetEnums())
 		{
-			code_stream << GenerateEnum(ObjectArray::GetByIndex<UEEnum>(EnumIdx));
+			CodeStream << GenerateEnum(ObjectArray::GetByIndex<UEEnum>(EnumIdx));
 
 		}
 
-		DependencyManager::OnVisitCallbackType GenerateClassCallback = [&](int32 Index) -> void
+		const DependencyManager::OnVisitCallbackType GenerateClassCallback = [&](int32 Index) -> void
 			{
-				code_stream << GenerateStruct(ObjectArray::GetByIndex<UEStruct>(Index));
+				CodeStream << GenerateStruct(ObjectArray::GetByIndex<UEStruct>(Index));
 			};
-		DependencyManager::OnVisitCallbackType GenerateStructCallback = [&](int32 Index) -> void
+		const DependencyManager::OnVisitCallbackType GenerateStructCallback = [&](int32 Index) -> void
 			{
-				code_stream << GenerateStruct(ObjectArray::GetByIndex<UEStruct>(Index));
+				CodeStream << GenerateStruct(ObjectArray::GetByIndex<UEStruct>(Index));
 			};
 
 		if (Package.HasStructs())
@@ -376,7 +376,7 @@ void CSharpGenerator::Generate()
 			Classes.VisitAllNodesWithCallback(GenerateStructCallback);
 		}
 
-		WriteCode(code_stream.str(), Package.GetName());
+		WriteCode(CodeStream.str(), Package.GetName());
 
 	}
 }

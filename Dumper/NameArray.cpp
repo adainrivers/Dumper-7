@@ -33,7 +33,7 @@ void FNameEntry::Init(const uint8_t* FirstChunkPtr, int64 NameEntryStringOffset)
 		constexpr uint32 BytePropertyStartAsUint32 = 'etyB'; // "Byte" part of "ByteProperty"
 
 		Off::FNameEntry::NamePool::StringOffset = NameEntryStringOffset;
-		Off::FNameEntry::NamePool::HeaderOffset = NameEntryStringOffset == 6 ? 4 : 0;
+		Off::FNameEntry::NamePool::HeaderOffset	 = NameEntryStringOffset == 6 ? 4 : 0;
 
 		uint8* AssumedBytePropertyEntry = *reinterpret_cast<uint8* const*>(FirstChunkPtr) + NameEntryStringOffset + NoneStrLen;
 
